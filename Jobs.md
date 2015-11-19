@@ -44,6 +44,7 @@ La primera tabla temporal, almacenará el nombre de los jobs provenientes de la t
 Hay que tomar en cuenta que las fechas en estas tablas se manejan en formatos diferentes, por lo que es recomendable convertirlo a un formato igual para toda la ejecucion. 
 
 
+> ```sql										
 >INSERT INTO #RunningJobs                    
 >	SELECT j.Name, j.job_id, jh.Step_name,
 >	CONVERT(DATETIME, RTRIM(jh.run_date)) + 
@@ -58,17 +59,19 @@ Hay que tomar en cuenta que las fechas en estas tablas se manejan en formatos di
 >	FROM msdb..sysjobhistory jh, msdb..sysjobs j
 >	WHERE jh.job_id=j.job_id  
 >	ORDER BY run_date DESC, run_time DESC 
- 
+> ```
+
 
 En la siguiente variable tabla se almacenaran todos los jobs de la tabla sysjobactivity que aun estan en ejecucion , esto se determina solicitando todos aquellos jobs cuya variable de la fecha de inicio no sea null, pero la fecha en la que finalizo si lo sea. 
  
-  		
+> ```sql										  		
 >INSERT INTO  @JobsRunning
 >	(JobsRunID, sessionId, job_id, run_request_date, start_execution_date, stop_execution_date)
 >	(SELECT ROW_NUMBER() OVER (ORDER BY  session_id), session_id, job_id, run_requested_date, start_execution_date, stop_execution_date 
 >		FROM msdb.dbo.sysjobactivity 
 >		WHERE start_execution_date IS NOT NULL AND stop_execution_date IS NULL)
- 
+> ```
+										
  
 Uno de los "pasos del job" mas importante seleccionado previamente en la tabla #RunningJobs es el '(Job Outcome)' este es el paso final de cada uno de los jobs una vez que concluye su ejecucion.
 Es decir, este "paso" contiene exactamente la fecha y hora en la que inicio y finalizo la ejecucion del job. 
@@ -77,7 +80,7 @@ Si este "paso" no se encuentra en la tabla para un job en especifico significa q
 Asi que por medio de un cursor se recorrera cada uno de los pasos para un job en especifico, determinando si  cuenta con ese ultimo  '(Job Outcome)', en caso de que no, se insertara en la tabla #IdsDate
 
  
- 
+> ```sql										 
 >DECLARE SesssionIdJob CURSOR FOR
 >	SELECT JobsRunID FROM @JobsRunning
 >	
@@ -101,7 +104,7 @@ Asi que por medio de un cursor se recorrera cada uno de los pasos para un job en
 >
 >CLOSE SesssionIdJob
 >DEALLOCATE SesssionIdJob 
-
+> ```
  
  
 
@@ -109,19 +112,19 @@ A fin de un ejemplo, para la ultima etapa del correo electronico, se notificaran
 
 Se creara una tabla en HTML con la informacion que se desea, en nuestro caso: nombre del Job, Fecha y Hora en la que inicio y Cantidad de horas que lleva corriendo
 
-```										
-SET @tableHTML =  
-  N'<H3>Jobs Running</H3>' + 
-  N'<table border="1">' +
-  N'<tr><th>JobName</th>
-  <th>Last_Start_Time</th>
-  <th>HoursRunning</th>  '  +
-  CAST ((SELECT td= Name , '',
-  td= start_dateTime,'',
-  td = TimeRunning , ''
-   FROM #IdsDate WHERE TimeRunning > 8 FOR XML PATH('tr') , TYPE 
-	) AS NVARCHAR(MAX) )+ N'</table>' 
-```  
+> ```sql										
+>SET @tableHTML =  
+>  N'<H3>Jobs Running</H3>' + 
+>  N'<table border="1">' +
+>  N'<tr><th>JobName</th>
+>  <th>Last_Start_Time</th>
+>  <th>HoursRunning</th>  '  +
+>  CAST ((SELECT td= Name , '',
+>  td= start_dateTime,'',
+>  td = TimeRunning , ''
+>   FROM #IdsDate WHERE TimeRunning > 8 FOR XML PATH('tr') , TYPE 
+>	) AS NVARCHAR(MAX) )+ N'</table>' 
+> ``` 
    
 Se completa la informacion necesaria para el correo electronico, y se envia la misma por medio del comando 
 EXEC msdb.dbo.sp_send_dbmail con el asunto del corre, destinatario, asunto, cuerpo del corero y formato del cuerpo.
