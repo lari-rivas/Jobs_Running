@@ -109,24 +109,24 @@ A fin de un ejemplo, para la ultima etapa del correo electronico, se notificaran
 
 Se creara una tabla en HTML con la informacion que se desea, en nuestro caso: nombre del Job, Fecha y Hora en la que inicio y Cantidad de horas que lleva corriendo
 
-										
->SET @tableHTML =  
->  N'<H3>Jobs Running</H3>' + 
->  N'<table border="1">' +
->  N'<tr><th>JobName</th>
->  <th>Last_Start_Time</th>
->  <th>HoursRunning</th>  '  +
->  CAST ((SELECT td= Name , '',
->  td= start_dateTime,'',
->  td = TimeRunning , ''
->   FROM #IdsDate WHERE TimeRunning > 8 FOR XML PATH('tr') , TYPE 
->	) AS NVARCHAR(MAX) )+ N'</table>' 
-  
+```										
+SET @tableHTML =  
+  N'<H3>Jobs Running</H3>' + 
+  N'<table border="1">' +
+  N'<tr><th>JobName</th>
+  <th>Last_Start_Time</th>
+  <th>HoursRunning</th>  '  +
+  CAST ((SELECT td= Name , '',
+  td= start_dateTime,'',
+  td = TimeRunning , ''
+   FROM #IdsDate WHERE TimeRunning > 8 FOR XML PATH('tr') , TYPE 
+	) AS NVARCHAR(MAX) )+ N'</table>' 
+```  
    
 Se completa la informacion necesaria para el correo electronico, y se envia la misma por medio del comando 
 EXEC msdb.dbo.sp_send_dbmail con el asunto del corre, destinatario, asunto, cuerpo del corero y formato del cuerpo.
                 
- 
+> ```sql
 >SELECT @EMailBody = '*** This are the Jobs that are running since last 8 hours. Please analyze and take any required action.***'
 >SELECT @EMailBody = @EMailBody + @tableHTML
 >		         
@@ -137,7 +137,7 @@ EXEC msdb.dbo.sp_send_dbmail con el asunto del corre, destinatario, asunto, cuer
 >			@Body = @EMailBody,
 >			@body_format = 'html' 
 >	END 
-
+>```
 
 
 
